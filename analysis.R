@@ -1,5 +1,5 @@
 # load library and provide authorization
-packload <- c('tidyverse', 'ggplot2','lme4', "lmerTest")
+packload <- c('tidyverse', 'ggplot2','lme4', "lmerTest", "googlesheets4")
 lapply(packload, library, character.only=TRUE)
 
 # read in data from google sheets (read_sheet only works with google sheets, and not other file types within Google Drive)
