@@ -18,5 +18,6 @@ df <- CNdat %>% left_join(climNdat, by = "recordID") %>%
 # create latitude bins 
 df$latbins <- cut(abs(df$lat.x), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
-  facet_wrap(~latbins)
+  facet_wrap(~latbins) +
+  theme_bw()
 
