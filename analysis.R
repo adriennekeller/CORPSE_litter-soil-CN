@@ -1,3 +1,4 @@
+### Set up, read in data
 # load library and provide authorization
 packload <- c('tidyverse', 'ggplot2','lme4', "lmerTest", "googlesheets4")
 lapply(packload, library, character.only=TRUE)
@@ -13,4 +14,9 @@ df <- CNdat %>% left_join(climNdat, by = "recordID") %>%
          litterCN = if_else(is.na(litterCN), litterC_pct/litterN_pct, litterCN)) %>%
   filter(soilCN > 3) # filters out 4 observations
 
+### EDA plotting
+# create latitude bins 
+df$latbins <- cut(abs(df$lat.x), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
+ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  facet_wrap(~latbins)
 
