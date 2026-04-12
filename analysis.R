@@ -21,3 +21,6 @@ ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth
   facet_wrap(~latbins) +
   theme_bw()
 
+#Brainstorm: what is the model we want?
+m1 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|citation), data = df)
+summary(m1)
