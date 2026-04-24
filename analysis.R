@@ -17,6 +17,42 @@ df <- CNdat %>% left_join(climNdat, by = "recordID") %>%
 ### EDA plotting
 # create latitude bins 
 df$latbins <- cut(abs(df$lat.x), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
+df$latbins2 <- cut(abs(df$lat.x), breaks = c(0,23.5,40,60,90), labels = c("0-23.5", "23.5-40", "40-60", "60-90"))
+
+#data exploration
+hist(log(df$soilCN))
+hist(log(df$litterCN))
+hist(df$litterC_pct)
+hist(df$litterN_pct)
+df_temp <- filter(df, soilCN>60 | soilCN<5)
+df_neon <- filter(df, citation == 'NEON')
+df_non_neon <- filter(df, citation != 'NEON')
+df_non_marambaia <- filter(df, citation_num.x != '1074')
+
+### The main exhibit: Global bivariate relationship between litter and soil C:N
+ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  theme_bw()
+ggplot(df_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  theme_bw()
+ggplot(df_non_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  theme_bw()
+ggplot(df_non_marambaia, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  theme_bw()
+#highlight influential site
+ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point(color = 'red') + geom_smooth(method = "lm") +
+  geom_point(data = df_non_marambaia, aes(x = log(litterCN), y = log(soilCN)), color = 'black')+
+  geom_abline(intercept = 0, slope = 1, linetype = 'dashed')+
+  theme_bw()
+
+mod1 <- lm(log(soilCN)~ log(litterCN), data = df)
+mod2 <- lm(log(soilCN)~ log(litterCN), data = df_neon)
+mod3 <- lm(log(soilCN)~ log(litterCN), data = df_non_neon)
+mod4 <- lm(log(soilCN)~ log(litterCN), data = df_non_marambaia)
+summary(mod1)
+summary(mod2)
+summary(mod3)
+summary(mod4)
+
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   facet_wrap(~latbins) +
   theme_bw()
