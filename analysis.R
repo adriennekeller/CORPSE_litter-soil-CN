@@ -28,6 +28,7 @@ df_temp <- filter(df, soilCN>60 | soilCN<5)
 df_neon <- filter(df, citation == 'NEON')
 df_non_neon <- filter(df, citation != 'NEON')
 df_non_marambaia <- filter(df, citation_num.x != '1074')
+df_fresh <- filter(df, fresh_litter_not_floor == TRUE)
 
 ### The main exhibit: Global bivariate relationship between litter and soil C:N
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
@@ -37,6 +38,9 @@ ggplot(df_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_s
 ggplot(df_non_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   theme_bw()
 ggplot(df_non_marambaia, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  theme_bw()
+ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  facet_wrap(~fresh_litter_not_floor)+
   theme_bw()
 #highlight influential site
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point(color = 'red') + geom_smooth(method = "lm") +
@@ -48,15 +52,47 @@ mod1 <- lm(log(soilCN)~ log(litterCN), data = df)
 mod2 <- lm(log(soilCN)~ log(litterCN), data = df_neon)
 mod3 <- lm(log(soilCN)~ log(litterCN), data = df_non_neon)
 mod4 <- lm(log(soilCN)~ log(litterCN), data = df_non_marambaia)
+mod5 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == TRUE))
+mod6 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == FALSE))
 summary(mod1)
 summary(mod2)
 summary(mod3)
 summary(mod4)
+summary(mod5)
+summary(mod6)
 
+#checkin out if it varies by latitude
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   facet_wrap(~latbins) +
   theme_bw()
 
-#Brainstorm: what is the model we want?
-m1 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|citation), data = df)
+#what are all possible covariates?
+df_no_na_cols <- df %>%
+  select(where(~ !any(is.na(.))))
+names(df_no_na_cols)
+
+#multivariat lms to explore co-variates
+mmod0 <- lm(log(soilCN)~ log(litterCN) + sample_depth_cm, data = df_fresh)
+mmod1 <- lm(log(soilCN)~ log(litterCN) + CLAY + pH + MAT + MAP + NDEP + MAOM_TOT + sample_depth_cm, data = df_fresh)
+mmod2 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + MAP + NDEP + MAOM_TOT + sample_depth_cm, data = df_fresh)
+mmod3 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + MAP + NDEP + sample_depth_cm, data = df_fresh)
+#MAT and MAP co-linear, making MAP look like + related to soil CN. Removing MAP bc MAT stronger predictor
+mmod4 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + NDEP + sample_depth_cm, data = df_fresh)
+summary(mmod0)
+summary(mmod1)
+summary(mmod2)
+summary(mmod3)
+summary(mmod4)
+
+library(visreg)
+visreg(mmod4, 'litterCN')
+visreg(mmod4, 'MAT')
+
+cor.test(df_fresh$MAP, df_fresh$MAT)
+
+hist(resid(mmod1))
+
+#mixed models
+m0 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|citation), data = df_fresh)
+m1 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|citation), data = df_fresh)
 summary(m1)
