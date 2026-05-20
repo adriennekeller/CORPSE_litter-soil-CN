@@ -14,10 +14,15 @@ df <- CNdat %>% left_join(climNdat, by = "recordID") %>%
          litterCN = if_else(is.na(litterCN), litterC_pct/litterN_pct, litterCN)) %>%
   filter(soilCN > 3) # filters out 4 observations
 
+# clean up columns that were duplicated with left_join above
+df <- df %>% dplyr::select(-c(lat.y, long.y, citation_num.x)) %>%
+  dplyr::rename(lat = lat.x, lon = long.x)
+
+
 ### EDA plotting
 # create latitude bins 
-df$latbins <- cut(abs(df$lat.x), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
-df$latbins2 <- cut(abs(df$lat.x), breaks = c(0,23.5,40,60,90), labels = c("0-23.5", "23.5-40", "40-60", "60-90"))
+df$latbins <- cut(abs(df$lat), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
+df$latbins2 <- cut(abs(df$lat), breaks = c(0,23.5,40,60,90), labels = c("0-23.5", "23.5-40", "40-60", "60-90"))
 
 #data exploration
 hist(log(df$soilCN))
