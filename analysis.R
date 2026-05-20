@@ -77,7 +77,7 @@ df_no_na_cols <- df %>%
 names(df_no_na_cols)
 
 #multivariat lms to explore co-variates
-mmod0 <- lm(log(soilCN)~ log(litterCN) + sample_depth_cm, data = df_fresh)
+mmod0 <- lm(log(soilCN)~ log(litterCN) + sample_depth_cm, data = df_fresh) # sample depth not significant
 mmod1 <- lm(log(soilCN)~ log(litterCN) + CLAY + pH + MAT + MAP + NDEP + MAOM_TOT + sample_depth_cm, data = df_fresh)
 mmod2 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + MAP + NDEP + MAOM_TOT + sample_depth_cm, data = df_fresh)
 mmod3 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + MAP + NDEP + sample_depth_cm, data = df_fresh)
@@ -94,10 +94,11 @@ visreg(mmod4, 'litterCN')
 visreg(mmod4, 'MAT')
 
 cor.test(df_fresh$MAP, df_fresh$MAT)
+cor.test(df_fresh$lat, df_fresh$MAT)
 
 hist(resid(mmod1))
 
 #mixed models
-m0 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|citation), data = df_fresh)
-m1 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|citation), data = df_fresh)
+m0 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|siteID), data = df_fresh)
+m1 <- lmer(soilCN ~ litterCN + MAT + CLAY + NDEP + MAOM_TOT + lat + (1|siteID), data = df_fresh)
 summary(m1)
