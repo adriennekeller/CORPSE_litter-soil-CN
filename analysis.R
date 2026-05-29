@@ -39,6 +39,8 @@ df_fresh <- filter(df, fresh_litter_not_floor == TRUE)
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   theme_bw()
 ggplot(df_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+  geom_point(data = df_non_neon, aes(x = log(litterCN), y = log(soilCN), color = 'red'))+ 
+  geom_smooth(data = df_non_neon, method = "lm")+
   theme_bw()
 ggplot(df_non_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   theme_bw()
@@ -49,7 +51,8 @@ ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth
   theme_bw()
 #highlight influential site
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point(color = 'red') + geom_smooth(method = "lm") +
-  geom_point(data = df_non_marambaia, aes(x = log(litterCN), y = log(soilCN)), color = 'black')+
+  geom_point(data = df_non_marambaia, aes(x = log(litterCN), y = log(soilCN)), color = 'black')+ 
+  geom_smooth(data = df_non_marambaia, method = "lm") +
   geom_abline(intercept = 0, slope = 1, linetype = 'dashed')+
   theme_bw()
 
@@ -99,6 +102,7 @@ cor.test(df_fresh$lat, df_fresh$MAT)
 hist(resid(mmod1))
 
 #mixed models
-m0 <- lmer(soilCN ~ litterCN + MAT + MAP + CLAY + NDEP + MAOM_TOT + (1|siteID), data = df_fresh)
+m0 <- lmer(log(soilCN) ~ log(litterCN) + (1|siteID), data = df)
+
 m1 <- lmer(soilCN ~ litterCN + MAT + CLAY + NDEP + MAOM_TOT + lat + (1|siteID), data = df_fresh)
-summary(m1)
+summary(m0)
