@@ -15,8 +15,8 @@ df <- CNdat %>% left_join(climNdat, by = "recordID") %>%
   filter(soilCN > 3) # filters out 4 observations
 
 # clean up columns that were duplicated with left_join above
-df <- df %>% dplyr::select(-c(lat.y, long.y, citation_num.x)) %>%
-  dplyr::rename(lat = lat.x, lon = long.x)
+df <- df %>% dplyr::select(-c(lat.y, long.y, citation_num.y)) %>%
+  dplyr::rename(lat = lat.x, lon = long.x, citation_num = citation_num.x)
 
 
 ### EDA plotting
@@ -32,7 +32,7 @@ hist(df$litterN_pct)
 df_temp <- filter(df, soilCN > 60 | soilCN < 5)
 df_neon <- filter(df, citation == 'NEON')
 df_non_neon <- filter(df, citation != 'NEON')
-df_non_marambaia <- filter(df, citation_num.x != '1074')
+df_non_marambaia <- filter(df, citation_num != '1074')
 df_fresh <- filter(df, fresh_litter_not_floor == TRUE)
 
 ### The main exhibit: Global bivariate relationship between litter and soil C:N
