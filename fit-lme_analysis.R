@@ -31,12 +31,16 @@ plot(e2 ~ log(litterCN), data = df, main = "log Litter CN", ylab = "Residuals") 
 summary(mod1.lme) # examine significance of regression parameters
 mod.lme.ML <- nlme::lme(log(soilCN) ~ log(litterCN), random = ~ 1| siteID, data = df,
                         method = "ML")
-mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + MAT + CLAY + NDEP + MAOM_TOT + lat, random = ~ 1| siteID, data = df,
+mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + CLAY + NDEP 
+                             + MAOM_TOT + lat,
+                             random = ~ 1| siteID, data = df,
                              method = "ML")
 summary(mod.lme.ML.full)
-mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + MAT + CLAY + NDEP + MAOM_TOT + lat, random = ~ 1| siteID, data = df,
+mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + NDEP + MAOM_TOT + lat, random = ~ 1| siteID, data = df,
                                  method = "ML")
 summary(mod.lme.ML.dropclay)
-anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff btwn models --> drop clay
+anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff - drop clay
+
+
 
 

@@ -19,16 +19,26 @@ df <- df %>% dplyr::select(-c(lat.y, long.y, citation_num.y)) %>%
   dplyr::rename(lat = lat.x, lon = long.x, citation_num = citation_num.x)
 
 
+### Examine distribution of single variables
+hist(df$soilCN)
+hist(log(df$soilCN))
+hist(df$litterCN)
+hist(log(df$litterCN))
+hist(df$litterC_pct)
+hist(df$litterN_pct)
+
+hist(df$MAT)
+hist(df$CLAY)
+hist(df$NDEP)
+hist(df$MAOM_TOT)
+hist(df$lat)
+
 ### EDA plotting
 # create latitude bins 
 df$latbins <- cut(abs(df$lat), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
 df$latbins2 <- cut(abs(df$lat), breaks = c(0,23.5,40,60,90), labels = c("0-23.5", "23.5-40", "40-60", "60-90"))
 
-#data exploration
-hist(log(df$soilCN))
-hist(log(df$litterCN))
-hist(df$litterC_pct)
-hist(df$litterN_pct)
+#data exploration of subsets of data
 df_temp <- filter(df, soilCN > 60 | soilCN < 5)
 df_neon <- filter(df, citation == 'NEON')
 df_non_neon <- filter(df, citation != 'NEON')
@@ -100,6 +110,12 @@ cor.test(df_fresh$MAP, df_fresh$MAT)
 cor.test(df_fresh$lat, df_fresh$MAT)
 
 hist(resid(mmod1))
+
+# bivars of climate/Ndep data
+ggplot(df, aes(x = MAP, y = MAT)) + geom_point()
+ggplot(df, aes(x = MAP, y = abs(lat))) + geom_point()
+ggplot(df, aes(x = MAT, y = abs(lat))) + geom_point()
+ggplot(df, aes(x = MAP, y = NDEP)) + geom_point()
 
 #mixed models
 m0 <- lmer(log(soilCN) ~ log(litterCN) + (1|siteID), data = df)
