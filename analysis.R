@@ -1,6 +1,6 @@
-### Set up, read in data
+### Set up, read in data ----
 # load library and provide authorization
-packload <- c('tidyverse', 'ggplot2','lme4', "lmerTest", "googlesheets4")
+packload <- c('tidyverse', 'ggplot2','lme4', "lmerTest", "googlesheets4", "nlme")
 lapply(packload, library, character.only=TRUE)
 
 # read in data from google sheets (read_sheet only works with google sheets, and not other file types within Google Drive)
@@ -19,22 +19,23 @@ df <- df %>% dplyr::select(-c(lat.y, long.y, citation_num.y)) %>%
   dplyr::rename(lat = lat.x, lon = long.x, citation_num = citation_num.x)
 
 
-### Examine distribution of single variables
-hist(df$soilCN)
-hist(log(df$soilCN))
-hist(df$litterCN)
-hist(log(df$litterCN))
-hist(df$litterC_pct)
-hist(df$litterN_pct)
+### Explore data
+# Examine distribution of single variables
+hist(df$soilCN) # a few very high values, but we checked their veracity
+hist(log(df$soilCN)) # log-transform improves normal distribution
+hist(df$litterCN) # right skewed 
+hist(log(df$litterCN)) # log-transform improves normal distribution
+hist(df$litterC_pct) # some outliers (excepted value ~45-50%) but we checked their veracity
+hist(df$litterN_pct) # some outliers but we checked their veracity
 
 hist(df$MAT)
 hist(df$CLAY)
 hist(df$NDEP)
 hist(df$MAOM_TOT)
-hist(df$lat)
+hist(df$lat) # will want to take abs() when using latitude as a covariate
 hist(df$pH)
 
-### EDA plotting
+# EDA plotting
 # create latitude bins 
 df$latbins <- cut(abs(df$lat), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
 df$latbins2 <- cut(abs(df$lat), breaks = c(0,23.5,40,60,90), labels = c("0-23.5", "23.5-40", "40-60", "60-90"))
@@ -46,73 +47,46 @@ df_non_neon <- filter(df, citation != 'NEON')
 df_non_marambaia <- filter(df, citation_num != '1074')
 df_fresh <- filter(df, fresh_litter_not_floor == TRUE)
 
-### The main exhibit: Global bivariate relationship between litter and soil C:N
+### Bivariate relationship between litter and soil C:N (with global dataset and subsets)
+#global dataset
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   theme_bw()
+# neon and non-neon data
 ggplot(df_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   geom_point(data = df_non_neon, aes(x = log(litterCN), y = log(soilCN), color = 'red'))+ 
   geom_smooth(data = df_non_neon, method = "lm")+
   theme_bw()
-ggplot(df_non_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
-  theme_bw()
-ggplot(df_non_marambaia, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
-  theme_bw()
+# fresh litter vs forest floor litter
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   facet_wrap(~fresh_litter_not_floor)+
   theme_bw()
-#highlight influential site
+#highlight influential site - marambaia
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point(color = 'red') + geom_smooth(method = "lm") +
   geom_point(data = df_non_marambaia, aes(x = log(litterCN), y = log(soilCN)), color = 'black')+ 
   geom_smooth(data = df_non_marambaia, method = "lm") +
   geom_abline(intercept = 0, slope = 1, linetype = 'dashed')+
   theme_bw()
 
-mod1 <- lm(log(soilCN)~ log(litterCN), data = df)
-mod2 <- lm(log(soilCN)~ log(litterCN), data = df_neon)
-mod3 <- lm(log(soilCN)~ log(litterCN), data = df_non_neon)
-mod4 <- lm(log(soilCN)~ log(litterCN), data = df_non_marambaia)
-mod5 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == TRUE))
-mod6 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == FALSE))
-summary(mod1)
-summary(mod2)
-summary(mod3)
-summary(mod4)
-summary(mod5)
-summary(mod6)
+# OLS regressions with global and subset data
+mod1 <- lm(log(soilCN)~ log(litterCN), data = df); summary(mod1)
+mod2 <- lm(log(soilCN)~ log(litterCN), data = df_neon); summary(mod2)
+mod3 <- lm(log(soilCN)~ log(litterCN), data = df_non_neon); summary(mod3)
+mod4 <- lm(log(soilCN)~ log(litterCN), data = df_non_marambaia); summary(mod4)
+mod5 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == TRUE)); summary(mod5)
+mod6 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == FALSE)); summary(mod6)
 
-#checkin out if it varies by latitude
+# bivariate relationship faceted by latitude bins
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   facet_wrap(~latbins) +
   theme_bw()
 
-#what are all possible covariates?
+### Building statistical model ---
+# what are possible covariates?
 df_no_na_cols <- df %>%
   select(where(~ !any(is.na(.))))
 names(df_no_na_cols)
 
-#multivariat lms to explore co-variates
-mmod0 <- lm(log(soilCN)~ log(litterCN) + sample_depth_cm, data = df_fresh) # sample depth not significant
-mmod1 <- lm(log(soilCN)~ log(litterCN) + CLAY + pH + MAT + MAP + NDEP + MAOM_TOT + sample_depth_cm, data = df_fresh)
-mmod2 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + MAP + NDEP + MAOM_TOT + sample_depth_cm, data = df_fresh)
-mmod3 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + MAP + NDEP + sample_depth_cm, data = df_fresh)
-#MAT and MAP co-linear, making MAP look like + related to soil CN. Removing MAP bc MAT stronger predictor
-mmod4 <- lm(log(soilCN)~ log(litterCN) + pH + MAT + NDEP + sample_depth_cm, data = df_fresh)
-summary(mmod0)
-summary(mmod1)
-summary(mmod2)
-summary(mmod3)
-summary(mmod4)
-
-library(visreg)
-visreg(mmod4, 'litterCN')
-visreg(mmod4, 'MAT')
-
-cor.test(df_fresh$MAP, df_fresh$MAT)
-cor.test(df_fresh$lat, df_fresh$MAT)
-
-hist(resid(mmod1))
-
-# bivars of climate/Ndep data
+# bivars of climate/Ndep data - check for colinearity
 ggplot(df, aes(x = MAP, y = MAT)) + geom_point(); cor.test(df$MAP, df$MAT) # r = 0.66
 ggplot(df, aes(x = MAP, y = abs(lat))) + geom_point(); cor.test(df$MAP, abs(df$lat)) # r = -0.68
 ggplot(df, aes(x = MAT, y = abs(lat))) + geom_point(); cor.test(df$MAT, abs(df$lat)) # r = -0.90
@@ -121,8 +95,113 @@ ggplot(df, aes(x = MAP, y = NDEP)) + geom_point(); cor.test(df$MAP, df$NDEP) # r
 ggplot(df, aes(x = abs(lat), y = MAOM_TOT)) + geom_point(); cor.test(abs(df$lat), df$MAOM_TOT) # r = -0.11
 
 
-#mixed models
-m0 <- lmer(log(soilCN) ~ log(litterCN) + (1|siteID), data = df)
+## Fit linear mixed model for soilC:N ~ litterC:N (below, run through step 7/8 for different climate/lat variables given their colinearity)
+# Step 1: linear model
+mod.lm <- lm(log(soilCN) ~ log(litterCN), data = df)
+summary(mod.lm)
+plot(mod.lm)
 
-m1 <- lmer(soilCN ~ litterCN + MAT + CLAY + NDEP + MAOM_TOT + lat + (1|siteID), data = df_fresh)
-summary(m0)
+# Step 2: Fit model with GLS (requires nlme::gsl())
+library(nlme)
+form <- formula(log(soilCN) ~ log(litterCN))
+mod.gls <- gls(form, data = df)
+summary(mod.gls)
+
+# Step 3/4: Choose variance structure (add in random effects) and fit model
+mod.lme <- nlme::lme(log(soilCN) ~ log(litterCN), random = ~1 | siteID, data = df,
+                     method = "REML")
+summary(mod.lme)
+
+# Step 5: compare gls and lme models - does lme provide better fit?
+anova(mod.gls, mod.lme) # random effects provide better fit
+
+# Step 6: assess homogeneity of variance and independence
+e2 <- resid(mod.lme, type = "normalized") # residuals from mod
+f2 <- fitted(mod.lme) # fitted values from model
+op <- par(mfrow, c(2,2), mar = c(4,4,3,2)) # set up plot
+plot(x = e2, y = f2, xlab = "Fitted Values", ylab = "Residuals") # fitted vs resid plot
+plot(e2 ~ log(litterCN), data = df, main = "log Litter CN", ylab = "Residuals") # residuals vs explanatory var
+
+# Step 7/8 - optimal fixed structure
+summary(mod.lme) # examine significance of regression parameters
+mod.lme.ML <- nlme::lme(log(soilCN) ~ log(litterCN), random = ~ 1| siteID, 
+                        data = df, method = "ML")
+
+#run through full --> drop --> final model with MAT
+mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + CLAY + 
+                               NDEP + MAOM_TOT,
+                             random = ~ 1| siteID, 
+                             data = df, method = "ML")
+summary(mod.lme.ML.full)
+
+mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + NDEP + 
+                                   MAOM_TOT, random = ~ 1| siteID, 
+                                 data = df, method = "ML")
+summary(mod.lme.ML.dropclay)
+anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff - drop clay
+
+mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + NDEP,
+                                     random = ~ 1| siteID, 
+                                     data = df, method = "ML")
+summary(mod.lme.ML.dropMAOM_TOT)
+anova(mod.lme.ML.dropclay, mod.lme.ML.dropMAOM_TOT) # no diff - also drop MAOM_TOT
+
+mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + NDEP,
+                           random = ~ 1| siteID, 
+                           data = df, method = "REML")
+summary(mod.lme.final) # final fitted model with REML method
+
+#run through full --> drop --> final model with MAP
+mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAP + CLAY + 
+                               NDEP + MAOM_TOT,
+                             random = ~ 1| siteID, 
+                             data = df, method = "ML")
+summary(mod.lme.ML.full) 
+
+mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAP + NDEP + 
+                                   MAOM_TOT, random = ~ 1| siteID, 
+                                 data = df, method = "ML")
+summary(mod.lme.ML.dropclay)
+anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff - drop clay
+
+mod.lme.ML.dropMAP <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                                  MAOM_TOT, random = ~ 1| siteID, 
+                                data = df, method = "ML") # MAOM_TOT is almost marginally sign. so dropping MAP before MAOM_TOT
+summary(mod.lme.ML.dropMAP)
+anova(mod.lme.ML.dropclay, mod.lme.ML.dropMAP) # no diff - also drop MAP
+
+mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP,
+                                     random = ~ 1| siteID, 
+                                     data = df, method = "ML")
+summary(mod.lme.ML.dropMAOM_TOT)
+anova(mod.lme.ML.dropMAP, mod.lme.ML.dropMAOM_TOT) # dropping MAOM_TOT increases AIC and p = 0.09 --> keep MAOM_TOT
+
+mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                             MAOM_TOT, random = ~ 1| siteID, 
+                           data = df, method = "REML")
+summary(mod.lme.final) # final fitted model with REML method
+
+#run through full --> drop --> final model with abs(lat)
+mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + abs(lat) + CLAY + 
+                               NDEP + MAOM_TOT,
+                             random = ~ 1| siteID, 
+                             data = df, method = "ML")
+summary(mod.lme.ML.full) 
+
+mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + abs(lat) + NDEP + 
+                                   MAOM_TOT, random = ~ 1| siteID, 
+                                 data = df, method = "ML")
+summary(mod.lme.ML.dropclay)
+anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff - drop clay
+
+mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                                       abs(lat), random = ~ 1| siteID, 
+                                     data = df, method = "ML") 
+summary(mod.lme.ML.dropMAOM_TOT)
+anova(mod.lme.ML.dropclay, mod.lme.ML.dropMAOM_TOT) # no diff - also drop MAOM_TOT
+
+mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                             abs(lat), random = ~ 1| siteID, 
+                           data = df, method = "ML") 
+summary(mod.lme.final) # final fitted model with REML method
+
