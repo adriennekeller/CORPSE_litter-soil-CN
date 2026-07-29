@@ -37,8 +37,7 @@ hist(df$pH)
 
 # EDA plotting
 # create latitude bins 
-df$latbins <- cut(abs(df$lat), breaks = c(0,10,20,30,40,50,60,90), labels = c("0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-90"))
-df$latbins2 <- cut(abs(df$lat), breaks = c(0,23.5,40,60,90), labels = c("0-23.5", "23.5-40", "40-60", "60-90"))
+df$latbins <- cut(abs(df$lat), breaks = c(0,23.5,40,60), labels = c("0-23.5", "23.5-40", "40-90"))
 
 #data exploration of subsets of data
 df_temp <- filter(df, soilCN > 60 | soilCN < 5)
@@ -46,6 +45,9 @@ df_neon <- filter(df, citation == 'NEON')
 df_non_neon <- filter(df, citation != 'NEON')
 df_non_marambaia <- filter(df, citation_num != '1074')
 df_fresh <- filter(df, fresh_litter_not_floor == TRUE)
+df_latbin1 <- df %>% filter(latbins == "0-23.5")
+df_latbin2 <- df %>% filter(latbins == "23.5-40")
+df_latbin3 <- df %>% filter(latbins == "40-90")
 
 ### Bivariate relationship between litter and soil C:N (with global dataset and subsets)
 #global dataset
@@ -204,7 +206,49 @@ anova(mod.lme.ML.dropclay, mod.lme.ML.dropMAOM_TOT) # no diff - also drop MAOM_T
 
 mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
                              abs(lat), random = ~ 1| siteID, 
-                           data = df, method = "ML") 
+                           data = df, method = "REML") 
 mod.lme.final.LAT <- mod.lme.final
 summary(mod.lme.final.LAT) # final fitted model with REML method
+
+## Run final full model structure for subset dfs
+# NEON and non-NEON
+mod.lme.NEON <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                             abs(lat), random = ~ 1| siteID, 
+                           data = df_neon, method = "REML") 
+summary(mod.lme.NEON)
+
+mod.lme.nonNEON <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                             abs(lat), random = ~ 1| siteID, 
+                           data = df_non_neon, method = "REML") 
+summary(mod.lme.nonNEON)
+
+# Non-Marambaia
+mod.lme.nonMARAMBAIA <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                                abs(lat), random = ~ 1| siteID, 
+                              data = df_non_marambaia, method = "REML") 
+summary(mod.lme.nonMARAMBAIA)
+
+# Fresh litter vs forest floor
+mod.lme.fresh <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                                     abs(lat), random = ~ 1| siteID, 
+                                   data = df_fresh, method = "REML") 
+summary(mod.lme.fresh)
+
+# Lat binned data
+mod.lme.latbin1 <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                              abs(lat), random = ~ 1| siteID, 
+                            data = df_latbin1, method = "REML") 
+summary(mod.lme.latbin1)
+
+mod.lme.latbin2 <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                                abs(lat), random = ~ 1| siteID, 
+                              data = df_latbin2, method = "REML") 
+summary(mod.lme.latbin2)
+
+mod.lme.latbin3 <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                                abs(lat), random = ~ 1| siteID, 
+                              data = df_latbin3, method = "REML") 
+summary(mod.lme.latbin3)
+
+
 
