@@ -120,7 +120,7 @@ anova(mod.gls, mod.lme) # random effects provide better fit
 # Step 6: assess homogeneity of variance and independence
 e2 <- resid(mod.lme, type = "normalized") # residuals from mod
 f2 <- fitted(mod.lme) # fitted values from model
-op <- par(mfrow, c(2,2), mar = c(4,4,3,2)) # set up plot
+op <- par(mfrow = c(2,2), mar = c(4,4,3,2)) # set up plot
 plot(x = e2, y = f2, xlab = "Fitted Values", ylab = "Residuals") # fitted vs resid plot
 plot(e2 ~ log(litterCN), data = df, main = "log Litter CN", ylab = "Residuals") # residuals vs explanatory var
 
