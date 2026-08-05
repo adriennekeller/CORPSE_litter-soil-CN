@@ -37,7 +37,7 @@ hist(df$pH)
 
 # EDA plotting
 # create latitude bins 
-df$latbins <- cut(abs(df$lat), breaks = c(0,23.5,40,60), labels = c("0-23.5", "23.5-40", "40-90"))
+df$latbins <- cut(abs(df$lat), breaks = c(0,23.5,40,90), labels = c("0-23.5", "23.5-40", "40-90"))
 
 #data exploration of subsets of data
 df_temp <- filter(df, soilCN > 60 | soilCN < 5)
@@ -53,6 +53,8 @@ df_latbin3 <- df %>% filter(latbins == "40-90")
 #global dataset
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   theme_bw()
+ggsave("litter-soil-CN.png")
+
 # neon and non-neon data
 ggplot(df_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   geom_point(data = df_non_neon, aes(x = log(litterCN), y = log(soilCN), color = 'red'))+ 
@@ -131,22 +133,30 @@ mod.lme.ML <- nlme::lme(log(soilCN) ~ log(litterCN), random = ~ 1| siteID,
 
 #run through full --> drop --> final model with MAT
 mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + CLAY + 
-                               NDEP + MAOM_TOT,
+                               NDEP + MAOM_TOT + sample_depth_cm,
                              random = ~ 1| siteID, 
                              data = df, method = "ML")
 summary(mod.lme.ML.full)
 
 mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + NDEP + 
-                                   MAOM_TOT, random = ~ 1| siteID, 
+                                   MAOM_TOT + sample_depth_cm, random = ~ 1| siteID, 
                                  data = df, method = "ML")
 summary(mod.lme.ML.dropclay)
 anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff - drop clay
 
-mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + NDEP,
+mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + 
+                                       NDEP + sample_depth_cm,
                                      random = ~ 1| siteID, 
                                      data = df, method = "ML")
 summary(mod.lme.ML.dropMAOM_TOT)
 anova(mod.lme.ML.dropclay, mod.lme.ML.dropMAOM_TOT) # no diff - also drop MAOM_TOT
+
+mod.lme.ML.dropsampledepth <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + 
+                                          NDEP,
+                           random = ~ 1| siteID, 
+                           data = df, method = "ML")
+summary(mod.lme.ML.dropsampledepth)
+anova(mod.lme.ML.dropMAOM_TOT, mod.lme.ML.dropsampledepth) # no diff - also drop sample depth
 
 mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAT + NDEP,
                            random = ~ 1| siteID, 
@@ -156,57 +166,69 @@ summary(mod.lme.final.MAT) # final fitted model with REML method
 
 #run through full --> drop --> final model with MAP
 mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAP + CLAY + 
-                               NDEP + MAOM_TOT,
+                               NDEP + MAOM_TOT + sample_depth_cm,
                              random = ~ 1| siteID, 
                              data = df, method = "ML")
 summary(mod.lme.ML.full) 
 
-mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAP + NDEP + 
-                                   MAOM_TOT, random = ~ 1| siteID, 
+mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + MAP + NDEP + 
+                                   CLAY + sample_depth_cm, random = ~ 1| siteID, 
                                  data = df, method = "ML")
-summary(mod.lme.ML.dropclay)
-anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff - drop clay
+summary(mod.lme.ML.dropMAOM_TOT)
+anova(mod.lme.ML.full, mod.lme.ML.dropMAOM_TOT) # no diff - drop MAOM_TOT
 
 mod.lme.ML.dropMAP <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
-                                  MAOM_TOT, random = ~ 1| siteID, 
-                                data = df, method = "ML") # MAOM_TOT is almost marginally sign. so dropping MAP before MAOM_TOT
+                                  CLAY + sample_depth_cm, random = ~ 1| siteID, 
+                                data = df, method = "ML") 
 summary(mod.lme.ML.dropMAP)
-anova(mod.lme.ML.dropclay, mod.lme.ML.dropMAP) # no diff - also drop MAP
+anova(mod.lme.ML.dropMAOM_TOT, mod.lme.ML.dropMAP) # no diff - also drop MAP
 
-mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP,
+mod.lme.ML.dropsampledepth <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                                       CLAY,
                                      random = ~ 1| siteID, 
                                      data = df, method = "ML")
-summary(mod.lme.ML.dropMAOM_TOT)
-anova(mod.lme.ML.dropMAP, mod.lme.ML.dropMAOM_TOT) # dropping MAOM_TOT increases AIC and p = 0.09 --> keep MAOM_TOT
+summary(mod.lme.ML.dropsampledepth)
+anova(mod.lme.ML.dropMAP, mod.lme.ML.dropsampledepth) # no diff - also drop sample depth
 
-mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
-                             MAOM_TOT, random = ~ 1| siteID, 
+mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP,
+                                     random = ~ 1| siteID, 
+                                     data = df, method = "ML")
+summary(mod.lme.ML.dropclay)
+anova(mod.lme.ML.dropsampledepth, mod.lme.ML.dropclay) # p = 0.08, marginal difference and clay is marginally sign
+
+mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP, random = ~ 1| siteID, 
                            data = df, method = "REML")
 mod.lme.final.MAP <- mod.lme.final
 summary(mod.lme.final.MAP) # final fitted model with REML method
 
 #run through full --> drop --> final model with abs(lat)
 mod.lme.ML.full <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + abs(lat) + CLAY + 
-                               NDEP + MAOM_TOT,
+                               NDEP + MAOM_TOT + sample_depth_cm,
                              random = ~ 1| siteID, 
                              data = df, method = "ML")
 summary(mod.lme.ML.full) 
 
 mod.lme.ML.dropclay <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + abs(lat) + NDEP + 
-                                   MAOM_TOT, random = ~ 1| siteID, 
+                                   MAOM_TOT + sample_depth_cm, random = ~ 1| siteID, 
                                  data = df, method = "ML")
 summary(mod.lme.ML.dropclay)
 anova(mod.lme.ML.full, mod.lme.ML.dropclay) # no diff - drop clay
 
 mod.lme.ML.dropMAOM_TOT <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
-                                       abs(lat), random = ~ 1| siteID, 
+                                       abs(lat) + sample_depth_cm, random = ~ 1| siteID, 
                                      data = df, method = "ML") 
 summary(mod.lme.ML.dropMAOM_TOT)
 anova(mod.lme.ML.dropclay, mod.lme.ML.dropMAOM_TOT) # no diff - also drop MAOM_TOT
 
+mod.lme.ML.dropsampledepth <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
+                             abs(lat) + sample_depth_cm, random = ~ 1| siteID, 
+                           data = df, method = "ML")
+summary(mod.lme.ML.dropsampledepth)
+anova(mod.lme.ML.dropclay, mod.lme.ML.dropsampledepth) # no diff - drop sample depth
+
 mod.lme.final <- nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP + 
-                             abs(lat), random = ~ 1| siteID, 
-                           data = df, method = "REML") 
+                                       abs(lat), random = ~ 1| siteID, 
+                                     data = df, method = "REML") 
 mod.lme.final.LAT <- mod.lme.final
 summary(mod.lme.final.LAT) # final fitted model with REML method
 
