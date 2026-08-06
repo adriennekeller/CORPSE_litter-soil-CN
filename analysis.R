@@ -83,6 +83,7 @@ mod6 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor 
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   facet_wrap(~latbins) +
   theme_bw()
+ggsave("bivar_latbins.png")
 
 ### Building statistical model ---
 # what are possible covariates?
