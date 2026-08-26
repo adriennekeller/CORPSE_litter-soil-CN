@@ -96,6 +96,7 @@ ggplot(df, aes(x = MAP, y = MAT)) + geom_point(); cor.test(df$MAP, df$MAT) # r =
 ggplot(df, aes(x = MAP, y = abs(lat))) + geom_point(); cor.test(df$MAP, abs(df$lat)) # r = -0.68
 ggplot(df, aes(x = MAT, y = abs(lat))) + geom_point(); cor.test(df$MAT, abs(df$lat)) # r = -0.90
 ggplot(df, aes(x = MAP, y = NDEP)) + geom_point(); cor.test(df$MAP, df$NDEP) # r = 0.12
+ggplot(df, aes(x = MAP, y = pH)) + geom_point(position = "jitter"); cor.test(df$MAP, df$pH)
 #NDEP can be included along with one of MAP, MAT, or abs(lat) (the latter three are all highly correlated)
 ggplot(df, aes(x = abs(lat), y = MAOM_TOT)) + geom_point(); cor.test(abs(df$lat), df$MAOM_TOT) # r = -0.11
 
