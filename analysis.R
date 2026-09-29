@@ -39,19 +39,25 @@ hist(df$pH)
 # create latitude bins 
 df$latbins <- cut(abs(df$lat), breaks = c(0,23.5,40,90), labels = c("0-23.5", "23.5-40", "40-90"))
 
+# create column designating if marambaia data or not
+df <- df %>% mutate(marambaia = if_else(citation_num == '1074', T, F))
+
 #data exploration of subsets of data
 df_temp <- filter(df, soilCN > 60 | soilCN < 5)
 df_neon <- filter(df, citation == 'NEON')
 df_non_neon <- filter(df, citation != 'NEON')
 df_non_marambaia <- filter(df, citation_num != '1074')
+df_marambaia <- filter(df, citation_num == '1074')
 df_fresh <- filter(df, fresh_litter_not_floor == TRUE)
+df_floor <- filter(df, fresh_litter_not_floor == FALSE)
 df_latbin1 <- df %>% filter(latbins == "0-23.5")
 df_latbin2 <- df %>% filter(latbins == "23.5-40")
 df_latbin3 <- df %>% filter(latbins == "40-90")
 
 ### Bivariate relationship between litter and soil C:N (with global dataset and subsets)
 #global dataset
-ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + 
+  geom_point() + geom_smooth(method = "lm") +
   theme_bw()
 ggsave("litter-soil-CN.png")
 
@@ -61,9 +67,12 @@ ggplot(df_neon, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_s
   geom_smooth(data = df_non_neon, method = "lm")+
   theme_bw()
 # fresh litter vs forest floor litter
-ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
+ggplot(df_non_marambaia, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
   facet_wrap(~fresh_litter_not_floor)+
   theme_bw()
+summary(mod_fresh <- lm(log(df_fresh$soilCN) ~ log(df_fresh$litterCN))) # R2 = 0.23, p < 0.001
+summary(mod_floor <- lm(log(df_floor$soilCN) ~ log(df_floor$litterCN))) #R2 = 0.60, p < 0.001 - but if you take marambaia out, R2 = 0.16
+
 #highlight influential site - marambaia
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point(color = 'red') + geom_smooth(method = "lm") +
   geom_point(data = df_non_marambaia, aes(x = log(litterCN), y = log(soilCN)), color = 'black')+ 
@@ -76,8 +85,9 @@ mod1 <- lm(log(soilCN)~ log(litterCN), data = df); summary(mod1)
 mod2 <- lm(log(soilCN)~ log(litterCN), data = df_neon); summary(mod2)
 mod3 <- lm(log(soilCN)~ log(litterCN), data = df_non_neon); summary(mod3)
 mod4 <- lm(log(soilCN)~ log(litterCN), data = df_non_marambaia); summary(mod4)
-mod5 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == TRUE)); summary(mod5)
-mod6 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == FALSE)); summary(mod6)
+mod5 <- lm(log(soilCN)~ log(litterCN), data = df_marambaia); summary(mod5)
+mod6 <- lm(log(soilCN)~ log(litterCN), data = filter(df, fresh_litter_not_floor == TRUE)); summary(mod6)
+mod7 <- lm(log(soilCN)~ log(litterCN), data = filter(df_non_marambaia, fresh_litter_not_floor == FALSE)); summary(mod7)
 
 # bivariate relationship faceted by latitude bins
 ggplot(df, aes(x = log(litterCN), y = log(soilCN))) + geom_point() + geom_smooth(method = "lm") + 
