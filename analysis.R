@@ -284,5 +284,64 @@ mod.lme.latbin3 <-  nlme::lme(log(soilCN) ~ log(litterCN) + pH + NDEP +
                               data = df_latbin3, method = "REML") 
 summary(mod.lme.latbin3)
 
+##############################################
+##Compare with other studies and models figure
+##############################################
+# Forest C:N data from Post et al. 1985
+post <- tribble(
+  ~zone, ~n, ~m, ~s,
+  "Boreal moist",          305, 16.0,  8.4,
+  "Boreal wet",             24, 16.9,  5.7,
+  "Boreal rain",            23, 25.8, 11.6,
+  "Cool temp moist",       650, 22.5,  8.7,
+  "Cool temp wet",         442, 20.7,  8.4,
+  "Cool temp rain",         17, 15.7,  4.6,
+  "Warm temp dry",         105, 14.0,  6.7,
+  "Warm temp moist",        98, 25.1, 13.1,
+  "Warm temp wet",          52, 15.6,  6.4,
+  "Subtropical dry",        17, 10.2,  4.3,
+  "Subtropical moist",      14, 10.3,  3.8,
+  "Subtropical wet",         1,  3.3,  0.0,
+  "Tropical very dry",     124, 13.7,  5.2,
+  "Tropical dry",          184, 13.3, 16.6,
+  "Tropical moist",        163, 14.9,  8.6,
+  "Tropical wet",           23, 30.2, 12.8
+)
+
+# Exact aggregated statistics
+N <- sum(post$n)
+M <- weighted.mean(post$m, post$n)
+S <- sqrt(sum((post$n - 1)*post$s^2 +
+                post$n*(post$m - M)^2)/(N - 1))
+c(n = N, mean = M, sd = S)
+
+# Theoretical normal density for historical data
+normal <- tibble(
+  y = seq(4, 65, length.out = 500),
+  density = dnorm(y, mean = M, sd = S)
+) |>
+  mutate(x = 1 + 0.4 * density / max(density))
+
+# Mirror the density to create a violin
+normal <- bind_rows(
+  normal,
+  normal |> mutate(x = 2 - x) |> arrange(desc(y))
+)
+
+ggplot() +
+  geom_polygon(data = normal, aes(x, y), fill = "salmon", color = "black") +
+  geom_violin(data = df, aes(x = 2, y = soilCN),
+              fill = "turquoise3", width = 0.8) +
+  scale_x_continuous(breaks = 1:2,
+                     labels = c("Post et al. 1985", "This study")) +
+  labs(x = NULL, y = "Soil C:N") +
+  geom_segment(aes(x = 0.8, xend = 1.2, y = M, yend = M),
+               linetype = "dashed") +
+  geom_segment(aes(x = 1.8, xend = 2.2,
+                   y = mean(df$soilCN, na.rm = TRUE),
+                   yend = mean(df$soilCN, na.rm = TRUE)),
+               linetype = "dashed") +
+  theme_classic()
+
 
 
